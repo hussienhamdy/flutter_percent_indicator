@@ -65,9 +65,6 @@ class LinearPercentIndicator extends StatefulWidget {
   /// (ie. create 'VU effect'). If no [linearGradient] is specified this option is ignored.
   final bool clipLinearGradient;
 
-  /// set a linear curve animation type
-  final Curve curve;
-
   LinearPercentIndicator({
     Key key,
     this.fillColor = Colors.transparent,
@@ -90,15 +87,12 @@ class LinearPercentIndicator extends StatefulWidget {
     this.alignment = MainAxisAlignment.start,
     this.maskFilter,
     this.clipLinearGradient = false,
-    this.curve = Curves.linear,
   }) : super(key: key) {
     if (linearGradient != null && progressColor != null) {
       throw ArgumentError(
           'Cannot provide both linearGradient and progressColor');
     }
     _progressColor = progressColor ?? Colors.red;
-
-    assert(curve != null);
 
     if (percent < 0.0 || percent > 1.0) {
       throw new Exception("Percent value must be a double between 0.0 and 1.0");
@@ -129,13 +123,13 @@ class _LinearPercentIndicatorState extends State<LinearPercentIndicator>
       _animationController = new AnimationController(
           vsync: this,
           duration: Duration(milliseconds: widget.animationDuration));
-      _animation = Tween(begin: 0.0, end: widget.percent).animate(
-        CurvedAnimation(parent: _animationController, curve: widget.curve),
-      )..addListener(() {
-          setState(() {
-            _percent = _animation.value;
-          });
-        });
+      _animation =
+          Tween(begin: 0.0, end: widget.percent).animate(_animationController)
+            ..addListener(() {
+              setState(() {
+                _percent = _animation.value;
+              });
+            });
       _animationController.forward();
     } else {
       _updateProgress();
@@ -153,9 +147,7 @@ class _LinearPercentIndicatorState extends State<LinearPercentIndicator>
         _animation = Tween(
                 begin: widget.animateFromLastPercent ? oldWidget.percent : 0.0,
                 end: widget.percent)
-            .animate(
-          CurvedAnimation(parent: _animationController, curve: widget.curve),
-        );
+            .animate(_animationController);
         _animationController.forward(from: 0.0);
       } else {
         _updateProgress();
@@ -177,28 +169,56 @@ class _LinearPercentIndicatorState extends State<LinearPercentIndicator>
       items.add(widget.leading);
     }
     final hasSetWidth = widget.width != null;
-    var containerWidget = Container(
-      width: hasSetWidth ? widget.width : double.infinity,
-      height: widget.lineHeight,
-      padding: widget.padding,
-      child: CustomPaint(
-        painter: LinearPainter(
-          isRTL: widget.isRTL,
-          progress: _percent,
-          center: widget.center,
-          progressColor: widget.progressColor,
-          linearGradient: widget.linearGradient,
-          backgroundColor: widget.backgroundColor,
-          linearStrokeCap: widget.linearStrokeCap,
-          lineWidth: widget.lineHeight,
-          maskFilter: widget.maskFilter,
-          clipLinearGradient: widget.clipLinearGradient,
+    var containerWidget;
+    if (widget.linearStrokeCap.index != LinearStrokeCap.roundAll.index) {
+      containerWidget = Container(
+        width: hasSetWidth ? widget.width : double.infinity,
+        height: widget.lineHeight,
+        padding: widget.padding,
+        child: CustomPaint(
+          painter: LinearPainter(
+            isRTL: widget.isRTL,
+            progress: _percent,
+            center: widget.center,
+            progressColor: widget.progressColor,
+            linearGradient: widget.linearGradient,
+            backgroundColor: widget.backgroundColor,
+            linearStrokeCap: widget.linearStrokeCap,
+            lineWidth: widget.lineHeight,
+            maskFilter: widget.maskFilter,
+            clipLinearGradient: widget.clipLinearGradient,
+          ),
+          child: (widget.center != null)
+              ? Center(child: widget.center)
+              : Container(),
         ),
-        child: (widget.center != null)
-            ? Center(child: widget.center)
-            : Container(),
-      ),
-    );
+      );
+    } else {
+      containerWidget = ClipRRect(
+        borderRadius: BorderRadius.circular(25.0),
+        child: Container(
+            width: hasSetWidth ? widget.width : double.infinity,
+            height: widget.lineHeight,
+            padding: widget.padding,
+            child: CustomPaint(
+              painter: LinearPainter(
+                isRTL: widget.isRTL,
+                progress: _percent,
+                center: widget.center,
+                progressColor: widget.progressColor,
+                linearGradient: widget.linearGradient,
+                backgroundColor: widget.backgroundColor,
+                linearStrokeCap: widget.linearStrokeCap,
+                lineWidth: widget.lineHeight,
+                maskFilter: widget.maskFilter,
+                clipLinearGradient: widget.clipLinearGradient,
+              ),
+              child: (widget.center != null)
+                  ? Center(child: widget.center)
+                  : Container(),
+            )),
+      );
+    }
 
     if (hasSetWidth) {
       items.add(containerWidget);
@@ -260,7 +280,7 @@ class LinearPainter extends CustomPainter {
     _paintLine.color = progress.toString() == "0.0"
         ? progressColor.withOpacity(0.0)
         : progressColor;
-    _paintLine.style = PaintingStyle.stroke;
+    _paintLine.style = PaintingStyle.fill;
     _paintLine.strokeWidth = lineWidth;
 
     if (linearStrokeCap == LinearStrokeCap.round) {
@@ -269,7 +289,7 @@ class LinearPainter extends CustomPainter {
       _paintLine.strokeCap = StrokeCap.butt;
     } else {
       _paintLine.strokeCap = StrokeCap.round;
-      _paintBackground.strokeCap = StrokeCap.round;
+      // _paintBackground.strokeCap = StrokeCap.round;
     }
   }
 
@@ -326,3 +346,4 @@ class LinearPainter extends CustomPainter {
     return true;
   }
 }
+
